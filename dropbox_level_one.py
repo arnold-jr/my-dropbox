@@ -16,6 +16,7 @@ BAR = progressbar.ProgressBar()
 
 
 class MyDropbox(dropbox.Dropbox):
+
   def dirs_download_to_file(self, src, target, filt=lambda s: True):
     files = []
     result = self.files_list_folder(src, recursive=True)
@@ -59,6 +60,24 @@ class MyDropbox(dropbox.Dropbox):
       os.makedirs(os.path.dirname(t), exist_ok=True)
       meta = dbx.files_download_to_file(t, source)
 
+  def dirs_upload(self, source_parent, target_parent,
+                  filt=lambda s: True, recurse=True):
+    """Copy all files in a local directory to Dropbox
+    
+    Args:
+      source_parent (str) -- local path to copy
+      target_parent (str) -- Dropbox absolute path to copy
+      filt (fun) -- filtering function for paths
+      recurse (bool) -- recursively traverse all children of source_parent
+    """
+
+    for root, dirs, files in os.walk(source_parent):
+      target_path = os.path.join(target_parent,
+                                 os.path.relpath(root, source_parent))
+      for file in files:
+        print(os.path.join(root,file), ' --> ', os.path.join(target_path, file))
+
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
@@ -78,4 +97,5 @@ if __name__ == "__main__":
   access_token = config['DEFAULT']['DROPBOX_ACCESS_TOKEN']
 
   dbx = MyDropbox(access_token)
-  dbx.dirs_download_to_file(args.src, args.tgt)
+  # dbx.dirs_download_to_file(args.src, args.tgt)
+  dbx.dirs_download_to_file('/Volumes/storage/cs4266', '/storage-mirror/cs4266')

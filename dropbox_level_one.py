@@ -5,14 +5,17 @@ import os
 import configparser
 import argparse
 import logging
-import progressbar
 import dropbox
-from functools import partial
-from pathos.multiprocessing import Pool
 
-BAR = progressbar.ProgressBar()
-
-
+def worker_copy_fun(source, dbx_fun, src_prefix, tgt_prefix):
+  """Copy from Dropbox to local
+  
+  Args:
+    dbx -- dropbox instance
+    source Iter(str) -- iterable of strings of Dropbox absolute path
+    src (str) -- Dropbox absolute parent path
+    tgt (str) -- Destination parent string
+  """
 
 
 class MyDropbox(dropbox.Dropbox):
@@ -32,32 +35,11 @@ class MyDropbox(dropbox.Dropbox):
        if isinstance(f, dropbox.dropbox.files.FileMetadata)
        )
     )
-
-    f = partial(self.worker_copy_fun, src=src, tgt=target)
-
-    if 1:
-      p = Pool()
-      p.map(f, sources)
-    else:
-      for s in filter(filt, BAR(sources)):
-        f(s)
-
-  def worker_copy_fun(self, source, src, tgt):
-    """Copy from Dropbox to local
-    
-    Args:
-      source (str) -- Dropbox absolute path
-      src (str) -- Dropbox absolute parent path
-      tgt (str) -- Destination parent string
-    """
-
-    t = source.replace(src, tgt)
-    print(source + " -> " + t)
-    return
-
-    if not os.path.exists(t):
-      os.makedirs(os.path.dirname(t), exist_ok=True)
-      meta = dbx.files_download_to_file(t, source)
+    for source in sources:
+      t = source.replace(src, target)
+      if not os.path.exists(t):
+          os.makedirs(os.path.dirname(t), exist_ok=True)
+          meta = dbx.files_download_to_file(t, source)
 
 
 if __name__ == "__main__":
@@ -74,7 +56,7 @@ if __name__ == "__main__":
   logging.basicConfig(filename='log.log', level=logging.DEBUG)
 
   config = configparser.ConfigParser()
-  config.read("../secrets/dropbox-env.ini.nogit")
+  config.read(os.path.expandvars("$HOME/.secrets/dropbox-env.ini.nogit"))
   access_token = config['DEFAULT']['DROPBOX_ACCESS_TOKEN']
 
   dbx = MyDropbox(access_token)
